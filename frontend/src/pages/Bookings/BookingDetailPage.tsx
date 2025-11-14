@@ -22,10 +22,11 @@ const BookingDetailPage = () => {
     checkinComments: '',
   });
 
-  const { data: booking, isLoading } = useQuery({
+  const { data: booking, isLoading, error } = useQuery({
     queryKey: ['booking', id],
     queryFn: () => bookingService.getById(Number(id)),
     enabled: !!id,
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time status updates
   });
 
   const checkoutMutation = useMutation({
@@ -33,7 +34,13 @@ const BookingDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking', id] });
       queryClient.invalidateQueries({ queryKey: ['myBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['allBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setShowCheckout(false);
+      alert('Vehicle checked out successfully!');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to checkout vehicle');
     },
   });
 
@@ -42,7 +49,13 @@ const BookingDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking', id] });
       queryClient.invalidateQueries({ queryKey: ['myBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['allBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setShowCheckin(false);
+      alert('Vehicle checked in successfully!');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to checkin vehicle');
     },
   });
 
@@ -51,16 +64,60 @@ const BookingDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking', id] });
       queryClient.invalidateQueries({ queryKey: ['myBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['allBookings'] });
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      alert('Booking cancelled successfully!');
       navigate('/bookings');
+    },
+    onError: (error: any) => {
+      alert(error.response?.data?.message || 'Failed to cancel booking');
     },
   });
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-gray-600">Loading booking details...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Booking Details</h1>
+          <button
+            onClick={() => navigate('/bookings')}
+            className="px-4 py-2 border rounded hover:bg-gray-50"
+          >
+            Back to Bookings
+          </button>
+        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          Error loading booking. Please try again.
+        </div>
+      </div>
+    );
   }
 
   if (!booking) {
-    return <div>Booking not found</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Booking Details</h1>
+          <button
+            onClick={() => navigate('/bookings')}
+            className="px-4 py-2 border rounded hover:bg-gray-50"
+          >
+            Back to Bookings
+          </button>
+        </div>
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded">
+          Booking not found.
+        </div>
+      </div>
+    );
   }
 
   const getStatusColor = (status: BookingStatus) => {
@@ -152,6 +209,18 @@ const BookingDetailPage = () => {
                 <dd className="text-gray-900">{booking.approverEmail}</dd>
               </div>
             )}
+            <div>
+              <dt className="font-medium text-gray-700">Created At</dt>
+              <dd className="text-gray-900">
+                {new Date(booking.createdAt).toLocaleString()}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-gray-700">Last Updated</dt>
+              <dd className="text-gray-900">
+                {new Date(booking.updatedAt).toLocaleString()}
+              </dd>
+            </div>
           </dl>
         </div>
 
@@ -218,6 +287,22 @@ const BookingDetailPage = () => {
                   <dd className="text-gray-900">{booking.usage.checkinComments}</dd>
                 </div>
               )}
+              {booking.usage.checkedOutAt && (
+                <div>
+                  <dt className="font-medium text-gray-700">Checked Out At</dt>
+                  <dd className="text-gray-900">
+                    {new Date(booking.usage.checkedOutAt).toLocaleString()}
+                  </dd>
+                </div>
+              )}
+              {booking.usage.checkedInAt && (
+                <div>
+                  <dt className="font-medium text-gray-700">Checked In At</dt>
+                  <dd className="text-gray-900">
+                    {new Date(booking.usage.checkedInAt).toLocaleString()}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         )}
@@ -258,24 +343,39 @@ const BookingDetailPage = () => {
       {showCheckout && (
         <div className="bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">Checkout Vehicle</h3>
+          {booking.vehicle && (
+            <p className="text-sm text-gray-600 mb-4">
+              Current Vehicle Mileage: {booking.vehicle.currentMileage.toLocaleString()} km
+            </p>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              if (checkoutData.startMileage < 0) {
+                alert('Mileage cannot be negative');
+                return;
+              }
+              if (checkoutData.startFuelLevel < 0 || checkoutData.startFuelLevel > 100) {
+                alert('Fuel level must be between 0 and 100');
+                return;
+              }
               checkoutMutation.mutate(checkoutData);
             }}
             className="space-y-4"
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Mileage *
+                Start Mileage (km) *
               </label>
               <input
                 type="number"
                 required
-                value={checkoutData.startMileage}
+                min="0"
+                value={checkoutData.startMileage || booking.vehicle?.currentMileage || 0}
                 onChange={(e) =>
                   setCheckoutData({ ...checkoutData, startMileage: Number(e.target.value) })
                 }
+                placeholder={booking.vehicle?.currentMileage?.toString() || '0'}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
@@ -335,23 +435,46 @@ const BookingDetailPage = () => {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              if (checkinData.endMileage < 0) {
+                alert('Mileage cannot be negative');
+                return;
+              }
+              if (checkinData.endMileage < (booking.usage?.startMileage || 0)) {
+                alert('End mileage cannot be less than start mileage');
+                return;
+              }
+              if (checkinData.endFuelLevel < 0 || checkinData.endFuelLevel > 100) {
+                alert('Fuel level must be between 0 and 100');
+                return;
+              }
               checkinMutation.mutate(checkinData);
             }}
             className="space-y-4"
           >
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Mileage *
+                End Mileage (km) *
               </label>
+              {booking.usage?.startMileage && (
+                <p className="text-xs text-gray-500 mb-1">
+                  Start mileage: {booking.usage.startMileage.toLocaleString()} km
+                </p>
+              )}
               <input
                 type="number"
                 required
+                min={booking.usage?.startMileage || 0}
                 value={checkinData.endMileage}
                 onChange={(e) =>
                   setCheckinData({ ...checkinData, endMileage: Number(e.target.value) })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
+              {booking.usage?.startMileage && checkinData.endMileage > 0 && (
+                <p className="text-xs text-green-600 mt-1">
+                  Distance: {(checkinData.endMileage - booking.usage.startMileage).toLocaleString()} km
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
