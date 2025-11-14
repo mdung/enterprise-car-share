@@ -48,9 +48,10 @@ const MyBookingsPage = () => {
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="space-y-4">
           {data?.content.map((booking) => (
-            <div
+            <Link
               key={booking.id}
-              className="p-4 border rounded-lg hover:bg-gray-50"
+              to={`/bookings/${booking.id}`}
+              className="block p-4 border rounded-lg hover:bg-gray-50"
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -79,7 +80,7 @@ const MyBookingsPage = () => {
                   {booking.status}
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
 

@@ -6,8 +6,11 @@ import RegisterPage from '../pages/Auth/RegisterPage';
 import DashboardPage from '../pages/Dashboard/DashboardPage';
 import VehicleListPage from '../pages/Vehicles/VehicleListPage';
 import VehicleDetailPage from '../pages/Vehicles/VehicleDetailPage';
+import VehicleManagementPage from '../pages/Vehicles/VehicleManagementPage';
 import MyBookingsPage from '../pages/Bookings/MyBookingsPage';
 import BookingCreatePage from '../pages/Bookings/BookingCreatePage';
+import BookingDetailPage from '../pages/Bookings/BookingDetailPage';
+import BookingManagementPage from '../pages/Bookings/BookingManagementPage';
 import MaintenancePage from '../pages/Maintenance/MaintenancePage';
 import ReportsPage from '../pages/Reports/ReportsPage';
 import ProfilePage from '../pages/Profile/ProfilePage';
@@ -47,12 +50,32 @@ const router = createBrowserRouter([
         element: <VehicleDetailPage />,
       },
       {
+        path: '/vehicles/manage',
+        element: (
+          <ProtectedRoute requiredRole={Role.ROLE_ADMIN}>
+            <VehicleManagementPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: '/bookings',
         element: <MyBookingsPage />,
       },
       {
         path: '/bookings/new',
         element: <BookingCreatePage />,
+      },
+      {
+        path: '/bookings/:id',
+        element: <BookingDetailPage />,
+      },
+      {
+        path: '/bookings/manage',
+        element: (
+          <ProtectedRoute>
+            <BookingManagementPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '/maintenance',

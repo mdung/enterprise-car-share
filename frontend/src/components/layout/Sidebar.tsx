@@ -40,14 +40,36 @@ const Sidebar = () => {
           Vehicles
         </Link>
         
+        {hasRole(Role.ROLE_ADMIN) && (
+          <Link
+            to="/vehicles/manage"
+            className={`block px-4 py-2 rounded ${
+              isActive('/vehicles/manage') ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            Manage Vehicles
+          </Link>
+        )}
+        
         <Link
           to="/bookings"
           className={`block px-4 py-2 rounded ${
-            isActive('/bookings') ? 'bg-gray-700' : 'hover:bg-gray-700'
+            isActive('/bookings') && !isActive('/bookings/manage') ? 'bg-gray-700' : 'hover:bg-gray-700'
           }`}
         >
           My Bookings
         </Link>
+        
+        {(hasRole(Role.ROLE_ADMIN) || hasRole(Role.ROLE_APPROVER)) && (
+          <Link
+            to="/bookings/manage"
+            className={`block px-4 py-2 rounded ${
+              isActive('/bookings/manage') ? 'bg-gray-700' : 'hover:bg-gray-700'
+            }`}
+          >
+            Manage Bookings
+          </Link>
+        )}
         
         {hasRole(Role.ROLE_ADMIN) && (
           <>
